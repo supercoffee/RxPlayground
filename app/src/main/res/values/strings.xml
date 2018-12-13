@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">RXJavaPlayground</string>
+    <string name="hint_plain_text">Plain text</string>
+</resources>
