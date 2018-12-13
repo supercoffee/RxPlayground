@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -17,12 +17,26 @@
         android:ems="10"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        tools:layout_editor_absoluteY="16dp" />
+        tools:layout_editor_absoluteY="16dp"
+        android:inputType="none" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/rv_output"
         android:padding="8dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="match_parent"
+        android:layout_above="@+id/rv_enabled_hashes"
+        android:layout_below="@+id/et_plain_text"
+        />
 
-</LinearLayout>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rv_enabled_hashes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:padding="16dp"
+        android:clipToPadding="false"
+        />
+
+</RelativeLayout>

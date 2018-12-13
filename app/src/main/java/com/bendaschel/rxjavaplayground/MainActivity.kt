@@ -24,20 +24,36 @@ class MainActivity : AppCompatActivity() {
         MessageDigestAdapter()
     }
 
+    private val hashFunctionControlsAdapter by lazy {
+        HashFunctionAdapter()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        findViewById<RecyclerView>(R.id.rv_output).apply{
+            adapter = this@MainActivity.adapter
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
+        }
+
+        findViewById<RecyclerView>(R.id.rv_enabled_hashes).apply {
+            adapter = hashFunctionControlsAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+        }
+
         val inputField = findViewById<EditText>(R.id.et_plain_text)
-        val outputRecyclerView = findViewById<RecyclerView>(R.id.rv_output)
-        outputRecyclerView.adapter = adapter
-        outputRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
 
         Observable.combineLatest(inputField.observe(), hashFunctions, BiFunction { t1: CharSequence, t2: List<DigestUtils> ->
             makeHash(t1, t2)
         }).subscribeOn(AndroidSchedulers.mainThread())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(::updateAdapter)
+
+
+        hashFunctions.subscribe {
+            hashFunctionControlsAdapter.submitList(it)
+        }
     }
 
     private fun updateAdapter(items: List<MessageDigestInfo>) {

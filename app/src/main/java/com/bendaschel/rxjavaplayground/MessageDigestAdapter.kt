@@ -17,7 +17,7 @@ class MessageDigestAdapter : RecyclerView.Adapter<MessageDigestVh>() {
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, position: Int): MessageDigestVh {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.include_hash_output, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.view_hash_output, parent, false)
         return MessageDigestVh(view)
     }
 
