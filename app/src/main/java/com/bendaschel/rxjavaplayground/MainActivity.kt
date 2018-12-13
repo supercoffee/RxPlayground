@@ -51,9 +51,18 @@ class MainActivity : AppCompatActivity() {
             .subscribe(::updateAdapter)
 
 
-        hashFunctions.subscribe {
+        hashFunctions.map {
+          it.map {
+              HashFunctionControl(it, false)
+          }
+        }.subscribe {
             hashFunctionControlsAdapter.submitList(it)
         }
+        
+        // output checked functions from adapter
+
+        // re-render hash outputs
+
     }
 
     private fun updateAdapter(items: List<MessageDigestInfo>) {
