@@ -23,6 +23,8 @@ class HashFunctionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     private val checkBox: CheckBox by bindView(R.id.cb_hash_enabled)
 
     fun bind(item: HashFunctionControl): Observable<HashFunctionControl> {
+        checkBox.setOnCheckedChangeListener(null)
+
         nameText.text = item.digest.messageDigest.algorithm
         checkBox.isChecked = item.enabled
 
@@ -59,4 +61,6 @@ class HashFunctionAdapter : ListAdapter<HashFunctionControl, HashFunctionViewHol
     override fun onViewRecycled(holder: HashFunctionViewHolder) {
         Log.d(logTag, "onViewRecycled: holder = $holder")
     }
+
+
 }

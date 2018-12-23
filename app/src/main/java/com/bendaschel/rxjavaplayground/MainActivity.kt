@@ -5,20 +5,19 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.widget.EditText
-import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.functions.BiFunction
+import io.reactivex.rxkotlin.Observables.combineLatest
 import org.apache.commons.codec.digest.DigestUtils
-import kotlin.experimental.and
 
 class MainActivity : AppCompatActivity() {
 
-    private val hashFunctions = Observable.just(listOf<DigestUtils>(
+    private val defaultHashFunctions = listOf<DigestUtils>(
             DigestUtils("MD5"),
             DigestUtils("SHA-1"),
             DigestUtils("SHA-256")
-    ))
+    )
 
+    private val hashControlState = HashControlState(defaultHashFunctions)
 
     private val adapter: MessageDigestAdapter by lazy {
         MessageDigestAdapter()
@@ -44,28 +43,23 @@ class MainActivity : AppCompatActivity() {
 
         val inputField = findViewById<EditText>(R.id.et_plain_text)
 
-        Observable.combineLatest(inputField.observe(), hashFunctions, BiFunction { t1: CharSequence, t2: List<DigestUtils> ->
-            makeHash(t1, t2)
-        }).subscribeOn(AndroidSchedulers.mainThread())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(::updateAdapter)
-
-
-        hashFunctions.map {
-          it.map {
-              HashFunctionControl(it, false)
-          }
-        }.subscribe {
-            hashFunctionControlsAdapter.submitList(it)
+        val enabledHashes = hashControlState.map {
+            it.mapNotNull {
+                if (it.enabled) it.digest else null
+            }
         }
-        
-        // output checked functions from adapter
 
-        // re-render hash outputs
+        hashControlState.subscribe { hashFunctionControlsAdapter.submitList(it) }
 
+        hashFunctionControlsAdapter.output.subscribe(hashControlState::onStateChanged)
+
+        combineLatest(inputField.observe(), enabledHashes, ::makeHash)
+                .subscribeOn(AndroidSchedulers.mainThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(::updateOutput)
     }
 
-    private fun updateAdapter(items: List<MessageDigestInfo>) {
+    private fun updateOutput(items: List<MessageDigestInfo>) {
         adapter.hashFunctions = items
     }
 
@@ -77,13 +71,4 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-}
-
-fun ByteArray.bytesToHex(): String {
-    val sb = StringBuilder(2 * this.size)
-    for (b in this) {
-        sb.append("0123456789ABCDEF"[(b.toInt() and 0xF0) shr 4])
-        sb.append("0123456789ABCDEF"[(b and 0x0F).toInt()])
-    }
-    return sb.toString()
 }
