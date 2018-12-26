@@ -4,71 +4,55 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.widget.EditText
+import android.util.Log
+import com.bendaschel.rxjavaplayground.network.Listing
+import com.bendaschel.rxjavaplayground.network.RedditApi
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.rxkotlin.Observables.combineLatest
-import org.apache.commons.codec.digest.DigestUtils
+import io.reactivex.internal.util.HalfSerializer.onNext
+import io.reactivex.schedulers.Schedulers
+import kotterknife.bindView
+import retrofit2.Retrofit
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
-    private val defaultHashFunctions = listOf<DigestUtils>(
-            DigestUtils("MD5"),
-            DigestUtils("SHA-1"),
-            DigestUtils("SHA-256")
-    )
+    private val mainContent by bindView<RecyclerView>(R.id.main_content_recycler)
 
-    private val hashControlState = HashControlState(defaultHashFunctions)
-
-    private val adapter: MessageDigestAdapter by lazy {
-        MessageDigestAdapter()
-    }
-
-    private val hashFunctionControlsAdapter by lazy {
-        HashFunctionAdapter()
+    private val adapter by lazy {
+        ListingAdapter()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        findViewById<RecyclerView>(R.id.rv_output).apply{
+        val retrofit = Retrofit.Builder()
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
+                .baseUrl("https://reddit.com")
+                .build()
+
+        val redditApi = retrofit.create(RedditApi::class.java)
+
+        // todo: create adapter
+        mainContent.apply {
             adapter = this@MainActivity.adapter
             layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
         }
 
-        findViewById<RecyclerView>(R.id.rv_enabled_hashes).apply {
-            adapter = hashFunctionControlsAdapter
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
-        }
-
-        val inputField = findViewById<EditText>(R.id.et_plain_text)
-
-        val enabledHashes = hashControlState.map {
-            it.mapNotNull {
-                if (it.enabled) it.digest else null
-            }
-        }
-
-        hashControlState.subscribe { hashFunctionControlsAdapter.submitList(it) }
-
-        hashFunctionControlsAdapter.output.subscribe(hashControlState::onStateChanged)
-
-        combineLatest(inputField.observe(), enabledHashes, ::makeHash)
-                .subscribeOn(AndroidSchedulers.mainThread())
+        redditApi.getSubredditPosts(subreddit = "aww", sort = RedditApi.SubredditSort.HOT)
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(::updateOutput)
+                .subscribe(::onNext, ::onError)
+
     }
 
-    private fun updateOutput(items: List<MessageDigestInfo>) {
-        adapter.hashFunctions = items
+    private fun onNext(listing: Listing) {
+        Log.d(logTag, "success")
     }
 
-    private fun makeHash(input: CharSequence, hashFunctions: List<DigestUtils>) =
-            hashFunctions.map {
-                MessageDigestInfo(
-                        name = it.messageDigest.algorithm,
-                        output = it.digest(input.toString()).bytesToHex()
-                )
-            }
-
+    private fun onError(error: Throwable) {
+        Log.e(logTag, "error", error)
+    }
 }
