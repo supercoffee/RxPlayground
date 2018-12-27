@@ -6,6 +6,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.util.Log
 import com.bendaschel.rxjavaplayground.network.Listing
+import com.bendaschel.rxjavaplayground.network.ListingWrapper
 import com.bendaschel.rxjavaplayground.network.RedditApi
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.internal.util.HalfSerializer.onNext
@@ -27,6 +28,11 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        mainContent.apply {
+            adapter = this@MainActivity.adapter
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
+        }
+
         val retrofit = Retrofit.Builder()
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .addConverterFactory(GsonConverterFactory.create())
@@ -35,12 +41,6 @@ class MainActivity : AppCompatActivity() {
 
         val redditApi = retrofit.create(RedditApi::class.java)
 
-        // todo: create adapter
-        mainContent.apply {
-            adapter = this@MainActivity.adapter
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.VERTICAL, false)
-        }
-
         redditApi.getSubredditPosts(subreddit = "aww", sort = RedditApi.SubredditSort.HOT)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -48,8 +48,9 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun onNext(listing: Listing) {
+    private fun onNext(listing: ListingWrapper) {
         Log.d(logTag, "success")
+        adapter.submitList(listing.data.children.map { it.data })
     }
 
     private fun onError(error: Throwable) {
